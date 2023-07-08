@@ -2,13 +2,19 @@ from transformers import AutoModel, AutoTokenizer
 import gradio as gr
 import mdtex2html
 from utils import load_model_on_gpus
+from fastllm_pytools import llm
 
-tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm2-6b", trust_remote_code=True)
-model = AutoModel.from_pretrained("THUDM/chatglm2-6b", trust_remote_code=True).cuda()
+model_dir = "/root/autodl-tmp/code/models/chatglm2-6b"
+
+tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
+orig_model = AutoModel.from_pretrained(model_dir, trust_remote_code=True)
 # 多显卡支持，使用下面两行代替上面一行，将num_gpus改为你实际的显卡数量
 # from utils import load_model_on_gpus
 # model = load_model_on_gpus("THUDM/chatglm2-6b", num_gpus=2)
-model = model.eval()
+orig_model = orig_model.eval()
+model = llm.from_hf(orig_model, tokenizer, dtype = "int4")
+del orig_model
+
 
 """Override Chatbot.postprocess"""
 
@@ -105,4 +111,4 @@ with gr.Blocks() as demo:
 
     emptyBtn.click(reset_state, outputs=[chatbot, history, past_key_values], show_progress=True)
 
-demo.queue().launch(share=False, inbrowser=True)
+demo.queue().launch(share=True, inbrowser=True)
